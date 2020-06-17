@@ -119,37 +119,6 @@ export default class PrismaZoom extends PureComponent {
   }
 
   /**
-   * Calculates the narrowed shift for panning actions.
-   * @param  {Number} shift      Initial shift in pixels
-   * @param  {Number} minLimit   Minimum limit (left or top) in pixels
-   * @param  {Number} maxLimit   Maximum limit (right or bottom) in pixels
-   * @param  {Number} minElement Left or top element position in pixels
-   * @param  {Number} maxElement Right or bottom element position in pixels
-   * @return {Number}            Narrowed shift
-   */
-  getLimitedShift = (shift, minLimit, maxLimit, minElement, maxElement) => {
-    if (shift > 0) {
-      if (minElement > minLimit) {
-        // Forbid move if we are moving to left or top while we are already out minimum boudaries
-        return 0
-      } else if (minElement + shift > minLimit) {
-        // Lower the shift if we are going out boundaries
-        return minLimit - minElement
-      }
-    } else if (shift < 0) {
-      if (maxElement < maxLimit) {
-        // Forbid move if we are moving to right or bottom while we are already out maximum boudaries
-        return 0
-      } else if (maxElement + shift < maxLimit) {
-        // Lower the shift if we are going out boundaries
-        return maxLimit - maxElement
-      }
-    }
-
-    return shift
-  }
-
-  /**
    * Determines cursor style.
    * @param  {Boolean} canMoveOnX Element can be panned on the X axis
    * @param  {Boolean} canMoveOnY Element can be panned on the Y axis
@@ -188,51 +157,34 @@ export default class PrismaZoom extends PureComponent {
    * @param  {Number} transitionDuration Transition duration (in seconds)
    */
   move = (shiftX, shiftY, transitionDuration = 0) => {
-    const { leftBoundary, rightBoundary, topBoundary, bottomBoundary } = this.props
     let { posX, posY } = this.state
 
     // Get container and container's parent coordinates
     const rect = this.refs.layout.getBoundingClientRect()
     const parentRect = this.refs.layout.parentNode.getBoundingClientRect()
 
-    // Get horizontal limits using specified horizontal boundaries
-    const [leftLimit, rightLimit] = [
-      leftBoundary,
-      document.body.clientWidth - rightBoundary
-    ]
-
-    const [isLarger, isOutLeftBoundary, isOutRightBoundary] = [
-      // Check if the element is larger than its container
-      (rect.width > (rightLimit - leftLimit)),
+    const [isOutLeftBoundary, isOutRightBoundary] = [
       // Check if the element is out its container left boundary
       (shiftX > 0 && (rect.left - parentRect.left) < 0),
       // Check if the element is out its container right boundary
       (shiftX < 0 && (rect.right - parentRect.right) > 0)
     ]
 
-    const canMoveOnX = isLarger || isOutLeftBoundary || isOutRightBoundary
+    const canMoveOnX = isOutLeftBoundary || isOutRightBoundary
     if (canMoveOnX) {
-      posX += this.getLimitedShift(shiftX, leftLimit, rightLimit, rect.left, rect.right)
+      posX += shiftX
     }
 
-    // Get vertical limits using specified vertical boundaries
-    const [topLimit, bottomLimit] = [
-      topBoundary,
-      document.body.clientHeight - bottomBoundary
-    ]
-
-    const [isHigher, isOutTopBoundary, isOutBottomBoundary] = [
-      // Check if the element is higher than its container
-      (rect.height > (bottomLimit - topLimit)),
+    const [isOutTopBoundary, isOutBottomBoundary] = [
       // Check if the element is out its container top boundary
-      (shiftY > 0 && (rect.top - parentRect.top) < 0),
+      (shiftY > 0 && rect.top < parentRect.top),
       // Check if the element is out its container bottom boundary
-      (shiftY < 0 && (rect.bottom - parentRect.bottom) > 0)
+      (shiftY < 0 && rect.bottom > parentRect.bottom)
     ]
 
-    const canMoveOnY = isHigher || isOutTopBoundary || isOutBottomBoundary
+    const canMoveOnY = isOutTopBoundary || isOutBottomBoundary
     if (canMoveOnY) {
-      posY += this.getLimitedShift(shiftY, topLimit, bottomLimit, rect.top, rect.bottom)
+      posY += shiftY
     }
 
     const cursor = this.getCursor(canMoveOnX, canMoveOnY)
