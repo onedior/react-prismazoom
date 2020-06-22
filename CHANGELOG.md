@@ -1,6 +1,9 @@
 # Changelog
 
 ## [1.1.4] - 2020-05-14
+- Fix a bug on scrolling to visible part of images after zoom
+  
+## [1.1.4] - 2020-05-14
 - Fix a bug on pages after scroll
 
 ## [1.1.3] - 2019-10-09
