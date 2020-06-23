@@ -1,6 +1,9 @@
 # Changelog
 
-## [1.1.4] - 2020-05-14
+## [1.1.6] - 2020-06-23
+- Fix white space on scrolling on zoomed images
+
+## [1.1.5] - 2020-06-22
 - Fix a bug on scrolling to visible part of images after zoom
   
 ## [1.1.4] - 2020-05-14
