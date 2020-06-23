@@ -119,6 +119,37 @@ export default class PrismaZoom extends PureComponent {
   }
 
   /**
+   * Calculates the narrowed shift for panning actions.
+   * @param  {Number} shift      Initial shift in pixels
+   * @param  {Number} minLimit   Minimum limit (left or top) in pixels
+   * @param  {Number} maxLimit   Maximum limit (right or bottom) in pixels
+   * @param  {Number} minElement Left or top element position in pixels
+   * @param  {Number} maxElement Right or bottom element position in pixels
+   * @return {Number}            Narrowed shift
+   */
+  getLimitedShift = (shift, minLimit, maxLimit, minElement, maxElement) => {
+    if (shift > 0) {
+      if (minElement > minLimit) {
+        // Forbid move if we are moving to left or top while we are already out minimum boudaries
+        return 0
+      } else if (minElement + shift > minLimit) {
+        // Lower the shift if we are going out boundaries
+        return minLimit - minElement
+      }
+    } else if (shift < 0) {
+      if (maxElement < maxLimit) {
+        // Forbid move if we are moving to right or bottom while we are already out maximum boudaries
+        return 0
+      } else if (maxElement + shift < maxLimit) {
+        // Lower the shift if we are going out boundaries
+        return maxLimit - maxElement
+      }
+    }
+
+    return shift
+  }
+
+  /**
    * Determines cursor style.
    * @param  {Boolean} canMoveOnX Element can be panned on the X axis
    * @param  {Boolean} canMoveOnY Element can be panned on the Y axis
@@ -165,14 +196,14 @@ export default class PrismaZoom extends PureComponent {
 
     const [isOutLeftBoundary, isOutRightBoundary] = [
       // Check if the element is out its container left boundary
-      (shiftX > 0 && (rect.left - parentRect.left) < 0),
+      (shiftX > 0 && (rect.left < parentRect.left)),
       // Check if the element is out its container right boundary
-      (shiftX < 0 && (rect.right - parentRect.right) > 0)
+      (shiftX < 0 && (rect.right > parentRect.right))
     ]
 
     const canMoveOnX = isOutLeftBoundary || isOutRightBoundary
     if (canMoveOnX) {
-      posX += shiftX
+      posX += this.getLimitedShift(shiftX, parentRect.left, parentRect.right, rect.left, rect.right)
     }
 
     const [isOutTopBoundary, isOutBottomBoundary] = [
@@ -184,7 +215,7 @@ export default class PrismaZoom extends PureComponent {
 
     const canMoveOnY = isOutTopBoundary || isOutBottomBoundary
     if (canMoveOnY) {
-      posY += shiftY
+      posY += this.getLimitedShift(shiftY, parentRect.top, parentRect.bottom, rect.top, rect.bottom)
     }
 
     const cursor = this.getCursor(canMoveOnX, canMoveOnY)
