@@ -16,7 +16,8 @@ export default class PrismaZoom extends PureComponent {
     bottomBoundary: PropTypes.number,
     animDuration: PropTypes.number,
     doubleTouchMaxDelay: PropTypes.number,
-    decelerationDuration: PropTypes.number
+    decelerationDuration: PropTypes.number,
+    imgWidth: PropTypes.number
   }
 
   static defaultProps = {
@@ -188,11 +189,23 @@ export default class PrismaZoom extends PureComponent {
    * @param  {Number} transitionDuration Transition duration (in seconds)
    */
   move = (shiftX, shiftY, transitionDuration = 0) => {
+    const {
+      leftBoundary,
+      rightBoundary,
+      topBoundary,
+      bottomBoundary,
+    } = this.props
     let { posX, posY } = this.state
 
     // Get container and container's parent coordinates
     const rect = this.refs.layout.getBoundingClientRect()
     const parentRect = this.refs.layout.parentNode.getBoundingClientRect()
+
+    //Calculate limits on X axis (browser content area minus limits set via props)
+    const [leftLimit, rightLimit] = [
+      leftBoundary,
+      window.innerWidth - rightBoundary,
+    ]
 
     const [isOutLeftBoundary, isOutRightBoundary] = [
       // Check if the element is out its container left boundary
@@ -203,8 +216,14 @@ export default class PrismaZoom extends PureComponent {
 
     const canMoveOnX = isOutLeftBoundary || isOutRightBoundary
     if (canMoveOnX) {
-      posX += this.getLimitedShift(shiftX, parentRect.left, parentRect.right, rect.left, rect.right)
+      posX += this.getLimitedShift(shiftX, leftLimit, rightLimit, rect.left, rect.right)
     }
+
+    //Calculate limits on Y axis (browser content area minus limits set via props)
+    const [topLimit, bottomLimit] = [
+      topBoundary,
+      window.innerHeight - bottomBoundary,
+    ]
 
     const [isOutTopBoundary, isOutBottomBoundary] = [
       // Check if the element is out its container top boundary
@@ -215,7 +234,7 @@ export default class PrismaZoom extends PureComponent {
 
     const canMoveOnY = isOutTopBoundary || isOutBottomBoundary
     if (canMoveOnY) {
-      posY += this.getLimitedShift(shiftY, parentRect.top, parentRect.bottom, rect.top, rect.bottom)
+      posY += this.getLimitedShift(shiftY, topLimit, bottomLimit, rect.top, rect.bottom)
     }
 
     const cursor = this.getCursor(canMoveOnX, canMoveOnY)
@@ -511,8 +530,8 @@ export default class PrismaZoom extends PureComponent {
     const prevZoom = zoom
 
     // Calculate zoom factor to scale the zone
-    const optimalZoomX = (document.body.clientWidth - leftBoundary - rightBoundary) / relWidth
-    const optimalZoomY = (document.body.clientHeight - topBoundary - bottomBoundary) / relHeight
+    const optimalZoomX = (window.innerWidth - leftBoundary - rightBoundary) / relWidth
+    const optimalZoomY = (window.innerHight - topBoundary - bottomBoundary) / relHeight
     zoom = Math.min(optimalZoomX, optimalZoomY, maxZoom)
 
     // Calculate new position to center the zone
@@ -550,16 +569,17 @@ export default class PrismaZoom extends PureComponent {
   }
 
   render () {
-    const { className, children } = this.props
+    const { className, children, imgWidth } = this.props
     const { zoom, posX, posY, cursor, transitionDuration } = this.state
+    const screenWidth = window.innerWidth;
+    const invertedZoom = (screenWidth / imgWidth) * zoom;
 
     const style = {
       ...this.props.style,
-      transform: `translate3d(${posX}px, ${posY}px, 0) scale(${zoom})`,
+      transform: `scale(${invertedZoom}) translateY(${posY}px) translateX(${posX}px) translateZ(0)`,
       transition: `transform ease-out ${transitionDuration}s`,
       cursor: cursor,
       touchAction: 'none',
-      willChange: 'transform'
     }
 
     const attr = {
